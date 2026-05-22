@@ -2,25 +2,32 @@
 """
 Configuracion de la base de datos con SQLAlchemy asincro
 """
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from typing import AsyncGenerator
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+from sqlalchemy.orm import declarative_base
 from app.core.config import settings
 
-# Motor asincro
+# Motor asíncrono con pool de conexiones optimizado
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_pre_ping=True
+    echo=False,          # Cambiar a True para ver el SQL generado en consola (solo en Dev)
+    future=True,
+    pool_size=20,        # Conexiones concurrentes máximas
+    max_overflow=10
 )
-
-# Session factory
-async_session = sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine, 
+    autocommit=False, 
+    autoflush=False, 
+    expire_on_commit=False,
+    class_=AsyncSession
 )
+Base = declarative_base()
 
-async def get_db():
-    """Dependencia para obtener sesion de base de datos"""
-    async with async_session() as session:
-        yield session
+# Inyección de Dependencia para FastAPI
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()

@@ -1,32 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Configuracion del proyecto
-Variables de entorno y settings globales
-"""
-from pydantic_settings import BaseSettings
-from typing import Optional
-import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    """Configuracion de la aplicacion"""
-    # Base de Datos
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql+asyncpg://user:password@localhost:5432/sgf_db"
-    )
+    PROJECT_NAME: str
+    VERSION: str
+    API_V1_STR: str
+    DATABASE_URL: str
+    SECRET_KEY: str
 
-    # JWT
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-this")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    # API
-    API_TITLE: str = "SGF Backend API"
-    API_VERSION: str = "1.0.0"
-    DEBUG: bool = os.getenv("DEBUG", "True") == "True"
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 settings = Settings()
