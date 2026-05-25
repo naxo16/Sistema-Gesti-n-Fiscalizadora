@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+from app.api.endpoints import infracciones
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,13 +24,21 @@ app = FastAPI(
     description="Backend para Sistema de Gestion Fiscalización"
 )
 
-# CORS middleware
+# CORS middleware (Corregido para seguridad)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    # Idealmente en producción: allow_origins=settings.BACKEND_CORS_ORIGINS
+    allow_origins=["*"], 
+    allow_credentials=False, # <-- Cambiado a False para permitir orígenes con "*"
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# ENSAMBLAJE CRÍTICO: Registrar el router de infracciones
+app.include_router(
+    infracciones.router,
+    prefix=f"{settings.API_V1_STR}/infracciones",
+    tags=["Sincronización Offline-First"]
 )
 
 @app.get("/health", tags=["Infraestructura"])
@@ -39,4 +48,4 @@ async def health_check():
         "status": "ok",
         "system": settings.PROJECT_NAME,
         "version": settings.VERSION
-        }
+    }

@@ -41,7 +41,8 @@ class ActaRegistro(Base):
 
     # Relaciones 1:1 Especializadas
     vehiculo: Mapped["ActaVehiculo"] = relationship(back_populates="registro_padre", cascade="all, delete-orphan", uselist=False)
-    
+    # Relación 1:N con Evidencias
+    evidencias: Mapped[list["Evidencia"]] = relationship(back_populates="acta", cascade="all, delete-orphan")
     # Auditoría forense 1:N
     eventos_auditoria: Mapped[list["AuditoriaEvento"]] = relationship(back_populates="acta", cascade="all, delete-orphan")
     dispositivo: Mapped["Dispositivo"] = relationship(back_populates="actas")
@@ -76,3 +77,19 @@ class AuditoriaEvento(Base):
     operador_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True) # Operador de backend que intervino, si aplica
 
     acta: Mapped["ActaRegistro"] = relationship(back_populates="eventos_auditoria")
+
+class Evidencia(Base):
+    """Almacenamiento de metadatos forenses de las fotografías/archivos"""
+    __tablename__ = "evidencias"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    acta_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("registros.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    ruta_archivo: Mapped[str] = mapped_column(String(500), nullable=False) # Ruta física en el disco del servidor
+    mime_type: Mapped[str] = mapped_column(String(100), nullable=False)    # ej: 'image/jpeg' verificado por MagicBytes
+    peso_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    hash_sha256: Mapped[str] = mapped_column(String(64), nullable=False)   # Sello de inmutabilidad
+    fecha_subida: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    acta: Mapped["ActaRegistro"] = relationship(back_populates="evidencias")

@@ -2,7 +2,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
-
+import uuid
 from app.models.infracciones import ActaRegistro, ActaVehiculo
 from app.schemas.infracciones import ActaRegistroCreate
 
@@ -69,3 +69,12 @@ class ActaRegistroRepository:
             acta_existente = result_existente.scalar_one()
             
             return acta_existente
+        
+    async def obtener_por_id(self, id: uuid.UUID) -> ActaRegistro | None:
+        """
+        Consulta rápida para verificar el estado de un acta.
+        Flutter usa esto para saber si el backend ya recibió y procesó el acta.
+        """
+        stmt = select(ActaRegistro).where(ActaRegistro.id == id)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
