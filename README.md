@@ -1,6 +1,6 @@
 # SGF Backend
 
-Sistema de Gestion Forestal - Backend con FastAPI
+Sistema de Gestion Fiscalizadora - Backend con FastAPI
 
 ## Estructura del Proyecto
 
