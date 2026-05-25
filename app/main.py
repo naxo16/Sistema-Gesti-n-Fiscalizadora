@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.endpoints import infracciones
+from app.api.endpoints import infracciones, auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,9 +38,13 @@ app.add_middleware(
 app.include_router(
     infracciones.router,
     prefix=f"{settings.API_V1_STR}/infracciones",
-    tags=["Sincronización Offline-First"]
+    tags=["Sincronización Offline-First"],
 )
-
+app.include_router(
+    auth.router,
+    prefix=f"{settings.API_V1_STR}/auth",
+    tags=["Autenticación"]
+)
 @app.get("/health", tags=["Infraestructura"])
 async def health_check():
     """Verificar que la API esta funcionando"""
