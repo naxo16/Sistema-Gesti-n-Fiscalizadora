@@ -28,10 +28,12 @@ class InfraccionVehicular(RegistroBase):
     __tablename__ = 'infracciones_vehiculares'
     registro_uuid: Mapped[uuid.UUID] = mapped_column(ForeignKey('registros_base.id'), primary_key=True)
     ppu: Mapped[str] = mapped_column(String, index=True)
-    marca: Mapped[str] = mapped_column(String)
-    tipo_vehiculo: Mapped[str] = mapped_column(String)
-    color: Mapped[str] = mapped_column(String)
-    tipo_infraccion_id: Mapped[str] = mapped_column(String, index=True)
+    rut_infractor: Mapped[str | None] = mapped_column(String, nullable=True)
+    nombre_completo: Mapped[str | None] = mapped_column(String, nullable=True)
+    marca: Mapped[str | None] = mapped_column(String, nullable=True)
+    tipo_vehiculo: Mapped[str | None] = mapped_column(String, nullable=True)
+    color: Mapped[str | None] = mapped_column(String, nullable=True)
+    tipo_infraccion_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     observaciones: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     __mapper_args__ = {

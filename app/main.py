@@ -3,7 +3,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import Request
 # Ajustar importaciones para usar los routers recién creados
 from app.api.endpoints.auth import router as auth_router
 from app.api.endpoints.infracciones import router as infracciones_router
@@ -23,6 +25,18 @@ app = FastAPI(
     lifespan=lifespan,
     description="Backend para Sistema de Gestion Fiscalización - MVP"
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print("="*50)
+    print("❌ ERROR DE VALIDACIÓN (422) ❌")
+    print("Cuerpo recibido:", exc.body)
+    print("Errores detallados:", exc.errors())
+    print("="*50)
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
 
 # CORS middleware
 app.add_middleware(

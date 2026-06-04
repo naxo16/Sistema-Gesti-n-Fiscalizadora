@@ -11,39 +11,80 @@ class SyncRepository:
     """
     
     async def procesar_acta_vehicular(self, db: AsyncSession, payload: SincronizacionActaRequest, inspector_id: uuid.UUID) -> InfraccionVehicular:
+        from sqlalchemy import select
+        from app.models.registros import RegistroBase
+        
+        # 0. Verificación de idempotencia (Offline-First retry)
+        existente = await db.scalar(select(RegistroBase).where(RegistroBase.id == payload.id))
+        if existente:
+            return existente
+
         try:
             # 1. Transformación Geoespacial (PostGIS)
-            # PostGIS requiere el orden: LONGITUD LATITUD
-            ubicacion_wkt = f"SRID=4326;POINT({payload.longitud} {payload.latitud})"
+            # Extraer lat y lon del string "-35.9664047,-72.3114046"
+            partes_coord = payload.coordenadas.split(',')
+            lat = partes_coord[0].strip() if len(partes_coord) > 0 else "0"
+            lon = partes_coord[1].strip() if len(partes_coord) > 1 else "0"
+            ubicacion_wkt = f"SRID=4326;POINT({lon} {lat})"
             
-            # 2. Instanciación Polimórfica
-            # SQLAlchemy manejará automáticamente la inserción en 'registros_base' e 'infracciones_vehiculares'
+            # 2. Desarmar Payload para InfraccionesVehiculares
             nueva_acta = InfraccionVehicular(
                 id=payload.id,
+                registro_uuid=payload.id,
                 inspector_id=inspector_id,
-                estado=payload.estado,
-                fecha_emision=payload.fecha_emision,
-                ubicacion=ubicacion_wkt,
-                # Atributos específicos de la tabla hija
-                ppu=payload.vehiculo.ppu,
-                marca=payload.vehiculo.marca,
-                tipo_vehiculo=payload.vehiculo.tipo_vehiculo,
-                color=payload.vehiculo.color,
-                tipo_infraccion_id=payload.vehiculo.tipo_infraccion_id,
-                observaciones=payload.vehiculo.observaciones
+                modulo="infraccion_vehicular",
+                estado=payload.status,
+                fecha_emision=payload.fecha,
+                ubicacion=f'SRID=4326;POINT({lon} {lat})',
+                ppu=payload.ppu,
+                rut_infractor=payload.rutInfractor,
+                nombre_completo=payload.nombreCompleto,
+                marca=payload.marcaVehiculo or 'No especificado',
+                tipo_vehiculo=payload.tipoVehiculo or 'No especificado',
+                color=payload.colorVehiculo or 'No especificado',
+                tipo_infraccion_id=str(payload.tipoInfraccionId) if payload.tipoInfraccionId is not None else '1',
+                observaciones=payload.descripcion
             )
             
             db.add(nueva_acta)
+            await db.flush() # Force insertion to guarantee PK exists
             
-            # 3. Manejo de Evidencias
-            for evidencia_req in payload.evidencias:
+            # 3. Procesar Evidencias
+            for foto_data in payload.fotos:
+                if isinstance(foto_data, dict):
+                    hash_val = foto_data.get('hash_sha256', '')
+                elif isinstance(foto_data, str):
+                    hash_val = foto_data
+                else:
+                    hash_val = getattr(foto_data, 'hash_sha256', str(foto_data))
+                
                 nueva_evidencia = EvidenciaFotografica(
-                    registro_uuid=payload.id,
-                    hash_sha256=evidencia_req.hash_sha256
+                    registro_uuid=nueva_acta.id,
+                    hash_sha256=hash_val
                 )
                 db.add(nueva_evidencia)
                 
-            # 4. Transaccionalidad ACID
+            # 4. Telemetría y Auditoría (Opcional, pero solicitado por el usuario)
+            from app.models.auditoria import AuditoriaEvento, SyncEvent
+            
+            sync_event = SyncEvent(
+                dispositivo_id="Fiscalis Mobile App",
+                inspector_id=inspector_id,
+                estado="EXITOSO",
+                detalles={"acta_id": str(payload.id), "modulo": "infraccion_vehicular"}
+            )
+            db.add(sync_event)
+            
+            auditoria = AuditoriaEvento(
+                entidad_id=str(payload.id),
+                entidad_tipo="InfraccionVehicular",
+                accion="CREACION_POR_SYNC",
+                usuario_id=inspector_id,
+                payload=payload.model_dump(mode='json')
+            )
+            db.add(auditoria)
+                
+            # 5. Transaccionalidad ACID
             await db.commit()
             return nueva_acta
             

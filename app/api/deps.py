@@ -19,7 +19,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def get_current_inspector(token: str = Depends(oauth2_scheme)) -> uuid.UUID:
     """
-    Decodifica el JWT, valida la firma y extrae el inspector_id.
+    Decodifica el JWT, valida la firma, verifica el scope y extrae el inspector_id.
     Si es inválido, retorna HTTP 401.
     """
     credentials_exception = HTTPException(
@@ -31,8 +31,9 @@ async def get_current_inspector(token: str = Depends(oauth2_scheme)) -> uuid.UUI
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         inspector_id: str | None = payload.get("sub")
+        scopes: list = payload.get("scopes", [])
         
-        if inspector_id is None:
+        if inspector_id is None or "access" not in scopes:
             raise credentials_exception
             
         return uuid.UUID(inspector_id)

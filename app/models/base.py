@@ -14,6 +14,19 @@ convention = {
 class Base(DeclarativeBase):
     """
     Clase base para todos los modelos SQLAlchemy 2.0.
-    Define las convenciones de metadatos.
     """
     metadata = MetaData(naming_convention=convention)
+
+import enum
+
+class TipoActa(str, enum.Enum):
+    VEHICULO = 'VEHICULO'
+    COMERCIO = 'COMERCIO'
+    ACTIVIDAD = 'ACTIVIDAD'
+
+class EstadoActa(str, enum.Enum):
+    BORRADOR = 'BORRADOR'
+    PENDIENTE_SYNC = 'PENDIENTE_SYNC'
+    SINCRONIZADO = 'SINCRONIZADO'
+    EMITIDA = 'EMITIDA'
+    ANULADA = 'ANULADA'

@@ -13,6 +13,8 @@ router = APIRouter()
 sync_repo = SyncRepository()
 
 @router.post("/sync", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def sincronizar_infracciones(
     payload: SincronizacionActaRequest,
     db: AsyncSession = Depends(get_db),
@@ -30,10 +32,12 @@ async def sincronizar_infracciones(
         )
         return {"message": "Sincronización exitosa", "id": acta.id}
         
-    except IntegrityError:
+    except IntegrityError as e:
+        import logging
+        logging.error(f"IntegrityError: {e}")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Conflicto de integridad. El registro o la evidencia ya existen en el servidor."
+            detail=f"Conflicto de integridad. El registro o la evidencia ya existen en el servidor. {str(e)}"
         )
 
 @router.get("", status_code=status.HTTP_200_OK)
