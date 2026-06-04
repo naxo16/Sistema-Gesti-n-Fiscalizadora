@@ -1,22 +1,19 @@
-# app/models/base.py
-import enum
-from datetime import datetime, timezone
-from sqlalchemy.orm import DeclarativeBase, MappedAsDataclass
-from sqlalchemy.ext.asyncio import AsyncAttrs
+import uuid
+from sqlalchemy import MetaData
+from sqlalchemy.orm import DeclarativeBase
 
-# Utilizamos AsyncAttrs para habilitar la carga perezosa asíncrona (lazy loading) si se llegase a requerir
-class Base(AsyncAttrs, DeclarativeBase):
+# Convención de nombres para restricciones (Constraints)
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+class Base(DeclarativeBase):
     """
-    Base declarativa maestra para SQLAlchemy 2.0.
+    Clase base para todos los modelos SQLAlchemy 2.0.
+    Define las convenciones de metadatos.
     """
-    pass
-
-class TipoActa(str, enum.Enum):
-    VEHICULO = "VEHICULO"
-    COMERCIO = "COMERCIO"
-    ACTIVIDAD = "ACTIVIDAD"
-
-class EstadoActa(str, enum.Enum):
-    EMITIDA = "EMITIDA"
-    ANULADA = "ANULADA"
-    OBSERVADA = "OBSERVADA" # Para contingencias o fiscalizaciones preventivas
+    metadata = MetaData(naming_convention=convention)

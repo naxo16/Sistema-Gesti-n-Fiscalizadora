@@ -1,45 +1,41 @@
-from typing import AsyncGenerator, Annotated
+import uuid
+from typing import AsyncGenerator
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-
-# CAMBIO CRÍTICO: Usamos PyJWT en lugar de python-jose
 import jwt
 from jwt.exceptions import InvalidTokenError
 
 from app.core.database import AsyncSessionLocal
-from app.core.config import settings
+from app.core.security import SECRET_KEY, ALGORITHM
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/token")
+# Definición del esquema de autenticación esperado en Swagger/OpenAPI
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency Injection de la sesión de BD."""
+    """Dependency Injection de la sesión de base de datos."""
     async with AsyncSessionLocal() as session:
         yield session
 
-async def get_dispositivo_actual(token: Annotated[str, Depends(oauth2_scheme)]) -> str:
-    """Validación Stateless del dispositivo mediante JWT o Token de Desarrollo."""
-    
-    # --- INICIO BYPASS DE DESARROLLO ---
-    # Si Flutter envía este token exacto, lo dejamos pasar como un dispositivo de prueba
-    if token == "dev-flutter-token-123":
-        return "dispositivo_prueba_flutter_001"
-    # --- FIN BYPASS ---
-
-    credenciales_exception = HTTPException(
+async def get_current_inspector(token: str = Depends(oauth2_scheme)) -> uuid.UUID:
+    """
+    Decodifica el JWT, valida la firma y extrae el inspector_id.
+    Si es inválido, retorna HTTP 401.
+    """
+    credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Credenciales de dispositivo inválidas o expiradas",
+        detail="No se pudieron validar las credenciales o el token expiró",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        imei_hash: str | None = payload.get("sub")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        inspector_id: str | None = payload.get("sub")
         
-        if imei_hash is None:
-            raise credenciales_exception
+        if inspector_id is None:
+            raise credentials_exception
+            
+        return uuid.UUID(inspector_id)
         
-        return imei_hash
-        
-    except InvalidTokenError: # Atrapamos la excepción específica de PyJWT
-        raise credenciales_exception
+    except (InvalidTokenError, ValueError):
+        raise credentials_exception

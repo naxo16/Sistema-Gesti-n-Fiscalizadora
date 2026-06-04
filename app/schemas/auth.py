@@ -1,8 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class LoginRequest(BaseModel):
-    imei_hash: str
+    username: str
+    password: str
 
-class Token(BaseModel):
+class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+    model_config = ConfigDict(from_attributes=True)
