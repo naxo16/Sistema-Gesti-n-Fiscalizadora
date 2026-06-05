@@ -27,6 +27,8 @@ async def seed_db():
         await conn.execute(text("DROP TABLE IF EXISTS vehiculos CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS evidencias CASCADE"))
         await conn.execute(text("DROP TABLE IF EXISTS dispositivos CASCADE"))
+        await conn.execute(text("DROP TABLE IF EXISTS dispositivos_moviles CASCADE"))
+        await conn.execute(text("DROP TABLE IF EXISTS usuario_mfa CASCADE"))
         
         # Recreamos toda la arquitectura limpia
         await conn.run_sync(Base.metadata.create_all)

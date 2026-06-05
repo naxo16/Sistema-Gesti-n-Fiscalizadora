@@ -12,6 +12,7 @@ Contiene la información común de todos los registros emitidos en el sistema.
 - `estado` - Estado actual del registro
 - `fecha_emision` - Fecha y hora de la emisión
 - `ubicacion` - Coordenadas espaciales (PostGIS)
+- `auditoria_jsonb` (JSONB) - Historial inmutable de estados del registro
 
 ### Tabla Hija: `infracciones_vehiculares`
 Extiende a `registros_base` con información específica de infracciones de tránsito.
@@ -20,8 +21,8 @@ Extiende a `registros_base` con información específica de infracciones de trá
 - `marca` - Marca del vehículo
 - `tipo_vehiculo` - Tipo de vehículo
 - `color` - Color del vehículo
-- `tipo_infraccion_id` - Identificador del tipo de infracción
-- `observaciones` - Detalles adicionales
+- `tipo_infraccion_id` (Integer/FK) - Referencia al catálogo de infracciones (`catalogo_infracciones.id`)
+- `observaciones` (Text) - Detalles narrativos ingresados por el inspector (Obligatorio)
 
 ## Evidencias
 
@@ -39,3 +40,17 @@ Registro inmutable de acciones en el sistema.
 
 ### Tabla: `sync_events`
 Control y trazabilidad de los eventos de sincronización entre clientes móviles y el backend.
+
+## Seguridad y Accesos
+
+### Tabla: `usuario_mfa`
+Almacena credenciales de múltiples factores.
+- `usuario_id` - Referencia a `usuarios.id`
+- Secretos TOTP y códigos de recuperación encriptados.
+
+### Tabla: `dispositivos_moviles`
+Controla los dispositivos autorizados.
+- `usuario_id` - Referencia a `usuarios.id`
+- `device_id` - Identificador único de hardware
+- `estado` - Estado del dispositivo (ej: 'ACTIVO')
+- `revocado` - Bandera de acceso revocado

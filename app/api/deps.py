@@ -17,7 +17,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 
-async def get_current_inspector(token: str = Depends(oauth2_scheme)) -> uuid.UUID:
+async def get_current_inspector(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> uuid.UUID:
     """
     Decodifica el JWT, valida la firma, verifica el scope y extrae el inspector_id.
     Si es inválido, retorna HTTP 401.
@@ -36,6 +39,14 @@ async def get_current_inspector(token: str = Depends(oauth2_scheme)) -> uuid.UUI
         if inspector_id is None or "access" not in scopes:
             raise credentials_exception
             
+        device_id = payload.get("device_id")
+        if device_id:
+            from app.repositories.auth_repository import AuthRepository
+            auth_repo = AuthRepository()
+            dev = await auth_repo.get_device(db, device_id)
+            if dev and dev.revocado:
+                raise HTTPException(status_code=403, detail="DEVICE_REVOKED")
+        
         return uuid.UUID(inspector_id)
         
     except (InvalidTokenError, ValueError):

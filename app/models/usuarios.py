@@ -36,4 +36,5 @@ class DispositivoMovil(Base):
     nombre_dispositivo: Mapped[str] = mapped_column(String, nullable=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True)
     revocado: Mapped[bool] = mapped_column(Boolean, default=False)
+    estado: Mapped[str] = mapped_column(String(20), default='ACTIVO')
     last_seen_at: Mapped[str] = mapped_column(String, nullable=True)

@@ -19,7 +19,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
 # Entorno virtual
 venv/
 ENV/
@@ -46,3 +45,9 @@ env/
 # Logs
 logs/
 *.log
+# otros
+.sqlite
+.sql
+.context
+.context/
+diccionario_datos.md

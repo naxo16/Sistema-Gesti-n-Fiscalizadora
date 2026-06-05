@@ -42,8 +42,8 @@ class SyncRepository:
                 marca=payload.marcaVehiculo or 'No especificado',
                 tipo_vehiculo=payload.tipoVehiculo or 'No especificado',
                 color=payload.colorVehiculo or 'No especificado',
-                tipo_infraccion_id=str(payload.tipoInfraccionId) if payload.tipoInfraccionId is not None else '1',
-                observaciones=payload.descripcion
+                tipo_infraccion_id=payload.tipoInfraccionId if payload.tipoInfraccionId is not None else 1,
+                observaciones=payload.descripcion or "Sin observaciones"
             )
             
             db.add(nueva_acta)

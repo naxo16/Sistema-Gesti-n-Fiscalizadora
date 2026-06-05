@@ -246,6 +246,23 @@ async def confirm_mfa(
     await db.commit()
     
     return {"message": "MFA habilitado correctamente"}
+@router.post("/mfa/validate")
+async def validate_mfa(
+    request_data: MfaConfirmRequest,
+    current_user_id = Depends(get_current_inspector),
+    db: AsyncSession = Depends(get_db)
+):
+    mfa = await auth_repo.get_user_mfa(db, current_user_id)
+    if not mfa or not mfa.enabled:
+        raise HTTPException(status_code=400, detail="MFA no esta habilitado")
+
+    secret = decrypt_secret(mfa.totp_secret_encrypted)
+    totp = pyotp.TOTP(secret)
+    if not totp.verify(request_data.totp_code, valid_window=2):
+        raise HTTPException(status_code=401, detail="Código TOTP incorrecto")
+        
+    return {"status": "success"}
+
 @router.post("/mfa/revoke")
 async def revoke_mfa(
     request_data: MfaConfirmRequest,
