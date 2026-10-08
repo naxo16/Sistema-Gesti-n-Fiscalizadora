@@ -38,6 +38,12 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": exc.errors(), "body": exc.body},
     )
 
+@app.middleware("http")
+async def add_corp_header(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+    return response
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
